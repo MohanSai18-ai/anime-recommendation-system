@@ -45,14 +45,16 @@ def load_data():
     merged = ratings.merge(anime, on="anime_id")[["user_id", "name", "rating"]]
 
     # Create pivot
-    pivot = merged.pivot_table(
+    anime_pivot = merged.pivot_table(
         index="name", columns="user_id", values="rating"
     ).fillna(0)
 
     # Compute similarity
-    similarity_matrix = cosine_similarity(pivot)
+    similarity_matrix = cosine_similarity(anime_pivot)
 
-    return anime, ratings, pivot, similarity_matrix
+    return anime, ratings, anime_pivot, similarity_matrix
+
+anime, ratings, anime_pivot, similarity = load_data()
 
 
 # -------------------------------------------------------
@@ -86,6 +88,7 @@ if st.button("Recommend"):
             st.write(f"**{i}. {r}**")
     else:
         st.error("Anime not found in database.")
+
 
 
 
