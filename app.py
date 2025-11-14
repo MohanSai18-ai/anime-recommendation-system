@@ -17,30 +17,43 @@ RATING_URL = f"https://drive.google.com/uc?id={RATING_FILE_ID}"
 # -------------------------------------------------------
 @st.cache_data
 def load_data():
-    st.info("Loading datasets... Please wait ⏳")
+    st.info("📥 Loading datasets...")
 
-    # Load anime.csv locally from repo
+    # Load anime.csv
     anime = pd.read_csv("anime.csv")
 
     # Try loading rating.csv from Google Drive
     try:
         ratings = pd.read_csv(RATING_URL)
+
+        # Validate expected columns
+        required_cols = {"user_id", "anime_id", "rating"}
+        if not required_cols.issubset(ratings.columns):
+            raise ValueError("Invalid CSV format from Drive")
+
         st.success("Loaded rating.csv from Google Drive ✔")
-    except:
-        st.error("Failed to load rating.csv from Google Drive ❌ Loading local file...")
+
+    except Exception as e:
+        st.error(f"Google Drive failed: {e}")
+        st.warning("Using local rating.csv instead...")
         ratings = pd.read_csv("rating.csv")
 
-    # Clean data
+    # Clean ratings
     ratings = ratings[ratings["rating"] != -1]
-    merged = ratings.merge(anime, on='anime_id')[['user_id', 'name', 'rating']]
-    pivot = merged.pivot_table(index='name', columns='user_id', values='rating').fillna(0)
 
+    # Merge
+    merged = ratings.merge(anime, on="anime_id")[["user_id", "name", "rating"]]
+
+    # Create pivot
+    pivot = merged.pivot_table(
+        index="name", columns="user_id", values="rating"
+    ).fillna(0)
+
+    # Compute similarity
     similarity_matrix = cosine_similarity(pivot)
 
     return anime, ratings, pivot, similarity_matrix
 
-
-anime, ratings, anime_pivot, similarity = load_data()
 
 # -------------------------------------------------------
 # 🔍 Recommendation Function
@@ -73,5 +86,6 @@ if st.button("Recommend"):
             st.write(f"**{i}. {r}**")
     else:
         st.error("Anime not found in database.")
+
 
 
